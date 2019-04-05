@@ -113,8 +113,8 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   treat_missing_data  = "breaching" # "missing"
 
   dimensions = {
-    LoadBalancer = "${data.aws_lb.lb.name}" #"app/kitdev-ecs-external/a6634fca2b497e42"
-    TargetGroup  = "${data.aws_lb_target_group.tg.name}" #"targetgroup/kitdev-linkmobility/c75b44c2a54f9b95"
+    LoadBalancer = "${data.aws_lb.lb.arn_suffix}" #"app/kitdev-ecs-external/a6634fca2b497e42"
+    TargetGroup  = "${data.aws_lb_target_group.tg.arn_suffix}" #"targetgroup/kitdev-linkmobility/c75b44c2a54f9b95"
   }
 
   alarm_description = "This metric monitors unhealthy hosts in the ${local.name} service"
