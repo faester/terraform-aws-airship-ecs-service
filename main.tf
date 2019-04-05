@@ -60,7 +60,7 @@ module "service" {
   source = "github.com/mhvelplund/terraform-aws-airship-ecs-service"
 
   create                    = "${var.create}"
-  name                      = "${local.name}" # TODO: Prefix with envname?
+  name                      = "${local.name}"                # TODO: Prefix with envname?
   bootstrap_container_image = "${local.docker_image}"
   container_cpu             = "${local.container_cpu}"
   container_memory          = "${local.container_memory}"
@@ -91,4 +91,33 @@ module "service" {
     Terraform   = true
     Environment = "${local.environment_name}"
   }
+}
+
+data "aws_lb_target_group" "tg" {
+  arn  = "${module.service.lb_target_group_arn}"
+}
+
+data "aws_lb" "lb" {
+  arn  = "${local.lb_arn}"
+}
+
+resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
+  alarm_name          = "${local.name}-unhealthy-host-count"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Minimum"
+  threshold           = 0
+  treat_missing_data  = "breaching" # "missing"
+
+  dimensions = {
+    LoadBalancer = "${data.aws_lb.lb.name}" #"app/kitdev-ecs-external/a6634fca2b497e42"
+    TargetGroup  = "${data.aws_lb_target_group.tg.name}" #"targetgroup/kitdev-linkmobility/c75b44c2a54f9b95"
+  }
+
+  alarm_description = "This metric monitors unhealthy hosts in the ${local.name} service"
+  alarm_actions     = []
+  actions_enabled   = false
 }
