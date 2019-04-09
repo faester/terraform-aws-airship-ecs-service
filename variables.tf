@@ -38,6 +38,10 @@ variable "settings" {
       container_memory          = "..." # Defines the hard memory limit of the container
       container_port            = "..." # Container port
       initial_capacity          = "..." # The desired amount of tasks for a service, when autoscaling is used desired_capacity is only used initially
+      kms_keys                  = "..." # Comma separated list of KMS keys that the service can access
+      ssm_paths                 = "..." # Comma separated list of SSM keys that the service can access
+      s3_ro_paths               = "..." # Comma separated list of S3 Bucket/Prefixes that the service can access
+      s3_rw_paths               = "..." # Comma separated list of S3 Bucket/Prefixes that the service can access
       load_balancing_type       = "..." # The load balancer type ("application"/"none"). Defaults to "application"
       lb_health_uri             = "..." # Load balancer health check URL
       max_capacity              = "..." # When autoscaling is activated, it sets the maximum of tasks to be available for this service

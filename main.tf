@@ -8,6 +8,10 @@ locals {
   ecs_cluster_id            = "${lookup(local.combined_settings, "ecs_cluster_id")}"
   environment_name          = "${lookup(local.combined_settings, "environment_name")}"
   initial_capacity          = "${lookup(local.combined_settings, "initial_capacity", 1)}"
+  kms_keys                  = "${compact(split(",", lookup(local.combined_settings, "kms_keys", "")))}"
+  ssm_paths                 = "${compact(split(",", lookup(local.combined_settings, "ssm_paths", "")))}"
+  s3_ro_paths               = "${compact(split(",", lookup(local.combined_settings, "s3_ro_paths", "")))}"
+  s3_rw_paths               = "${compact(split(",", lookup(local.combined_settings, "s3_rw_paths", "")))}"
   load_balancing_type       = "${lookup(local.combined_settings, "load_balancing_type", "application")}"
   lb_arn                    = "${lookup(local.combined_settings, "lb_arn")}"
   lb_health_uri             = "${lookup(local.combined_settings, "lb_health_uri", "/health")}"
@@ -88,6 +92,15 @@ module "service" {
   region                                           = "${local.region}"
   ecs_cluster_id                                   = "${local.ecs_cluster_id}"
 
+  kms_enabled = "${length(local.kms_keys) > 0}"
+  kms_keys    = ["${local.kms_keys}"]
+
+  ssm_enabled = "${length(local.ssm_paths) > 0}"
+  ssm_paths   = ["${local.ssm_paths}"]
+
+  s3_rw_paths = ["${local.s3_rw_paths}"]
+  s3_ro_paths = ["${local.s3_ro_paths}"]
+
   tags = {
     Terraform   = true
     Environment = "${local.environment_name}"
@@ -117,8 +130,8 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   treat_missing_data  = "breaching"                                      # "missing"
 
   dimensions = {
-    LoadBalancer = "${data.aws_lb.lb.arn_suffix}"              
-    TargetGroup  = "${data.aws_lb_target_group.tg.arn_suffix}" 
+    LoadBalancer = "${data.aws_lb.lb.arn_suffix}"
+    TargetGroup  = "${data.aws_lb_target_group.tg.arn_suffix}"
   }
 
   alarm_description = "This metric monitors unhealthy hosts in the ${local.name} service"
