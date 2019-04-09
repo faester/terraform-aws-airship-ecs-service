@@ -38,6 +38,7 @@ variable "settings" {
       container_memory          = "..." # Defines the hard memory limit of the container
       container_port            = "..." # Container port
       initial_capacity          = "..." # The desired amount of tasks for a service, when autoscaling is used desired_capacity is only used initially
+      load_balancing_type       = "..." # The load balancer type ("application"/"none"). Defaults to "application"
       lb_health_uri             = "..." # Load balancer health check URL
       max_capacity              = "..." # When autoscaling is activated, it sets the maximum of tasks to be available for this service
       min_capacity              = "..." # When autoscaling is activated, it sets the minimum of tasks to be available for this service

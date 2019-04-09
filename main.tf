@@ -8,6 +8,7 @@ locals {
   ecs_cluster_id            = "${lookup(local.combined_settings, "ecs_cluster_id")}"
   environment_name          = "${lookup(local.combined_settings, "environment_name")}"
   initial_capacity          = "${lookup(local.combined_settings, "initial_capacity", 1)}"
+  load_balancing_type       = "${lookup(local.combined_settings, "load_balancing_type", "application")}"
   lb_arn                    = "${lookup(local.combined_settings, "lb_arn")}"
   lb_health_uri             = "${lookup(local.combined_settings, "lb_health_uri", "/health")}"
   lb_listener_arn           = "${lookup(local.combined_settings, "lb_listener_arn")}"
@@ -29,7 +30,7 @@ locals {
 }
 
 resource "aws_security_group" "sg" {
-  count       = "${var.create && local.platform == "FARGATE" ? 1 : 0}"
+  count       = "${var.create && local.platform == "FARGATE" && local.load_balancing_type != "none" ? 1 : 0}"
   name        = "${local.environment_name}-${local.name}_sg"
   description = "Allow inbound traffic to port ${local.container_port} on ${local.name}"
   vpc_id      = "${local.lb_vpc_id}"
@@ -76,7 +77,7 @@ module "service" {
   capacity_properties_desired_capacity             = "${local.initial_capacity}"
   capacity_properties_desired_max_capacity         = "${local.max_capacity}"
   capacity_properties_desired_min_capacity         = "${local.min_capacity}"
-  load_balancing_type                              = "application"
+  load_balancing_type                              = "${local.load_balancing_type}"
   load_balancing_properties_redirect_http_to_https = true
   load_balancing_properties_lb_listener_arn_https  = "${local.lb_listener_arn_https}"
   load_balancing_properties_lb_listener_arn        = "${local.lb_listener_arn}"
@@ -94,14 +95,17 @@ module "service" {
 }
 
 data "aws_lb_target_group" "tg" {
-  arn  = "${module.service.lb_target_group_arn}"
+  count = "${local.load_balancing_type != "none" ? 1 : 0}"
+  arn   = "${module.service.lb_target_group_arn}"
 }
 
 data "aws_lb" "lb" {
-  arn  = "${local.lb_arn}"
+  count = "${local.load_balancing_type != "none" ? 1 : 0}"
+  arn   = "${local.lb_arn}"
 }
 
 resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
+  count               = "${local.load_balancing_type != "none" ? 1 : 0}"
   alarm_name          = "${local.name}-unhealthy-host-count"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -110,11 +114,11 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   period              = 60
   statistic           = "Minimum"
   threshold           = 0
-  treat_missing_data  = "breaching" # "missing"
+  treat_missing_data  = "breaching"                                      # "missing"
 
   dimensions = {
-    LoadBalancer = "${data.aws_lb.lb.arn_suffix}" #"app/kitdev-ecs-external/a6634fca2b497e42"
-    TargetGroup  = "${data.aws_lb_target_group.tg.arn_suffix}" #"targetgroup/kitdev-linkmobility/c75b44c2a54f9b95"
+    LoadBalancer = "${data.aws_lb.lb.arn_suffix}"              
+    TargetGroup  = "${data.aws_lb_target_group.tg.arn_suffix}" 
   }
 
   alarm_description = "This metric monitors unhealthy hosts in the ${local.name} service"
