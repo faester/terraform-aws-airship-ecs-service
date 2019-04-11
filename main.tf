@@ -61,7 +61,8 @@ resource "aws_security_group" "sg" {
 
 # TODO: Expose all terraform-aws-airship-ecs-service parameters
 module "service" {
-  source = "github.com/mhvelplund/terraform-aws-airship-ecs-service"
+  source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=support_container_secrets"  
+  #source = "../terraform-aws-airship-ecs-service"
 
   create                    = "${var.create}"
   name                      = "${local.combined_settings["name"]}"             # TODO: Prefix with envname?
@@ -70,6 +71,7 @@ module "service" {
   container_memory          = "${local.combined_settings["container_memory"]}"
   container_port            = "${local.combined_settings["container_port"]}"
   container_envvars         = "${var.environment_variables}"
+  container_secrets         = "${var.environment_secrets}"
   container_healthcheck     = "${var.container_healthcheck}"
 
   fargate_enabled           = "${local.is_fargate ? 1 : 0}"
