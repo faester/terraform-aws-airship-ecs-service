@@ -74,6 +74,7 @@ module "service" {
   container_secrets         = "${var.environment_secrets}"
   container_healthcheck     = "${var.container_healthcheck}"
 
+  container_secrets_enabled = "${length(keys(var.environment_secrets)) > 0}"
   fargate_enabled           = "${local.is_fargate ? 1 : 0}"
   awsvpc_enabled            = "${local.is_fargate ? 1 : 0}"
   awsvpc_security_group_ids = ["${aws_security_group.sg.*.id}"]
