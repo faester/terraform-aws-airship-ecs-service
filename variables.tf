@@ -70,4 +70,3 @@ variable "environment_secrets" {
   description = "Environment secrets fed to the container from SSM keys"
   default     = {}
 }
-

@@ -49,7 +49,7 @@ data "aws_subnet_ids" "private" {
 
   tags = {
     Environment = "${local.environment_name}"
-    Tier = "ServiceBusPrivate"
+    Tier        = "ServiceBusPrivate"
   }
 }
 
@@ -113,7 +113,8 @@ resource "aws_security_group" "sg" {
 
 # TODO: Expose all terraform-aws-airship-ecs-service parameters
 module "service" {
-  source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=support_container_secrets"  
+  source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=support_container_secrets"
+
   #source = "../terraform-aws-airship-ecs-service"
 
   create                    = "${var.create}"
@@ -125,13 +126,11 @@ module "service" {
   container_envvars         = "${var.environment_variables}"
   container_secrets         = "${var.environment_secrets}"
   container_healthcheck     = "${var.container_healthcheck}"
-
   container_secrets_enabled = "${length(keys(var.environment_secrets)) > 0}"
   fargate_enabled           = "${local.is_fargate ? 1 : 0}"
   awsvpc_enabled            = "${local.is_fargate ? 1 : 0}"
   awsvpc_security_group_ids = ["${aws_security_group.sg.*.id}"]
   awsvpc_subnets            = ["${compact(split(",", local.is_fargate ? join(",", data.aws_subnet_ids.private.ids ) : ""))}"]
-
   capacity_properties_desired_capacity             = "${local.combined_settings["initial_capacity"]}"
   capacity_properties_desired_max_capacity         = "${local.combined_settings["max_capacity"]}"
   capacity_properties_desired_min_capacity         = "${local.combined_settings["min_capacity"]}"
@@ -145,16 +144,12 @@ module "service" {
   load_balancing_properties_health_uri             = "${local.combined_settings["lb_health_uri"]}"
   region                                           = "${local.combined_settings["region"]}"
   ecs_cluster_id                                   = "${data.aws_ecs_cluster.cluster.arn}"
-
   kms_enabled = "${length(local.kms_keys) > 0}"
   kms_keys    = ["${local.kms_keys}"]
-
   ssm_enabled = "${length(local.ssm_paths) > 0}"
   ssm_paths   = ["${local.ssm_paths}"]
-
   s3_rw_paths = ["${local.s3_rw_paths}"]
   s3_ro_paths = ["${local.s3_ro_paths}"]
-
   tags = {
     Terraform   = true
     Environment = "${local.environment_name}"
@@ -186,3 +181,4 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
 ####################################################################################################
 # </Service Definition>
 ####################################################################################################
+
