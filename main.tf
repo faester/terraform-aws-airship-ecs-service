@@ -113,8 +113,8 @@ resource "aws_security_group" "sg" {
 
 # TODO: Expose all terraform-aws-airship-ecs-service parameters
 module "service" {
-  #source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=support_container_secrets"  
-  source = "../terraform-aws-airship-ecs-service"
+  source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=support_container_secrets"  
+  #source = "../terraform-aws-airship-ecs-service"
 
   create                    = "${var.create}"
   name                      = "${local.combined_settings["name"]}"             # TODO: Prefix with envname?
