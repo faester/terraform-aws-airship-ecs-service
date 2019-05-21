@@ -8,6 +8,8 @@ locals {
     min_capacity              = 1
     max_capacity              = 2
     lb_health_uri             = "/health"
+    lb_unhealthy_threshold    = 3
+    lb_healthy_threshold      = 3
     load_balancing_type       = "application"
     kms_keys                  = ""
     ssm_paths                 = ""
@@ -142,6 +144,8 @@ module "service" {
   load_balancing_properties_lb_arn                 = "${data.aws_lb.lb.arn}"
   load_balancing_properties_route53_zone_id        = "${local.combined_settings["lb_route53_zone_id"]}"
   load_balancing_properties_health_uri             = "${local.combined_settings["lb_health_uri"]}"
+  load_balancing_properties_unhealthy_threshold    = "${local.combined_settings["lb_unhealthy_threshold"]}"
+  load_balancing_properties_healthy_threshold      = "${local.combined_settings["lb_healthy_threshold"]}"
   region                                           = "${local.combined_settings["region"]}"
   ecs_cluster_id                                   = "${data.aws_ecs_cluster.cluster.arn}"
   kms_enabled                                      = "${length(local.kms_keys) > 0}"

@@ -37,6 +37,8 @@ variable "settings" {
       s3_rw_paths               = "..." # Comma separated list of S3 Bucket/Prefixes that the service can access
       load_balancing_type       = "..." # The load balancer type ("application"/"none"). Defaults to "application"
       lb_health_uri             = "..." # Load balancer health check URL
+      lb_unhealthy_threshold    = "..." # The number of consecutive successful health checks required before considering an healthy target unhealthy
+      lb_healthy_threshold      = "..." # The number of consecutive successful health checks required before considering an unhealthy target healthy
       max_capacity              = "..." # When autoscaling is activated, it sets the maximum of tasks to be available for this service
       min_capacity              = "..." # When autoscaling is activated, it sets the minimum of tasks to be available for this service
       platform                  = "..." # Either FARGATE or EC2 (uppercase)
