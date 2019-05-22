@@ -37,12 +37,12 @@ An example of an NGinx server with injected environment vars:
 
 ```hcl
 module "linkmobility" {
-  source = "git::https://git:<ACCESS_TOKEN>@git.rootdom.dk/KIT-ITL/terraform-ecs-service.git?ref=1.0.0"
+  source = "git::https://git:<ACCESS_TOKEN>@git.rootdom.dk/KIT-ITL/terraform-ecs-service.git?ref=1.1.0"
 
   shared_settings = "${local.shared_service_settings}"
+  name            = "dummy-service"
 
   settings {
-    name                      = "dummy-service"
     bootstrap_container_image = "nginx:stable"
     container_port            = 80
     ssm_paths                 = "dummy-service"

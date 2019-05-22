@@ -10,12 +10,13 @@ locals {
     lb_health_uri             = "/health"
     lb_unhealthy_threshold    = 3
     lb_healthy_threshold      = 3
+    lb_redirect_http_to_https = true
     load_balancing_type       = "application"
     kms_keys                  = ""
     ssm_paths                 = ""
     s3_ro_paths               = ""
     s3_rw_paths               = ""
-    platform                  = "EC2"
+    platform                  = "FARGATE"
   }
 
   combined_settings = "${merge(local.default_settings,var.shared_settings,var.settings)}"
@@ -30,7 +31,7 @@ locals {
 
   docker_image = "${local.combined_settings["bootstrap_container_image"] != "USE_DEFAULT" ? 
     local.combined_settings["bootstrap_container_image"] : 
-    join("",list(local.combined_settings["mgmt_account"],".dkr.ecr.eu-west-1.amazonaws.com/",local.combined_settings["name"],":latest"))}"
+    join("",list(local.combined_settings["mgmt_account"],".dkr.ecr.eu-west-1.amazonaws.com/",var.name,":latest"))}"
 
   environment_name = "${local.combined_settings["environment_name"]}"
 }
@@ -88,8 +89,8 @@ data "aws_lb_target_group" "tg" {
 
 resource "aws_security_group" "sg" {
   count       = "${var.create && local.is_fargate && local.has_lb ? 1 : 0}"
-  name        = "${local.environment_name}-${local.combined_settings["name"]}_sg"
-  description = "Allow inbound traffic to port ${local.combined_settings["container_port"]} on ${local.combined_settings["name"]}"
+  name        = "${local.environment_name}-${var.name}_sg"
+  description = "Allow inbound traffic to port ${local.combined_settings["container_port"]} on ${var.name}"
   vpc_id      = "${data.aws_security_group.lb_sg.vpc_id}"
 
   ingress {
@@ -108,7 +109,7 @@ resource "aws_security_group" "sg" {
 
   tags {
     Terraform   = true
-    Name        = "${local.environment_name}-${local.combined_settings["name"]}_sg"
+    Name        = "${local.environment_name}-${var.name}_sg"
     Environment = "${local.environment_name}"
   }
 }
@@ -120,7 +121,7 @@ module "service" {
   #source = "../terraform-aws-airship-ecs-service"
 
   create                                           = "${var.create}"
-  name                                             = "${local.combined_settings["name"]}"                                                            # TODO: Prefix with envname?
+  name                                             = "${var.name}"                                                                                   # TODO: Prefix with envname?
   bootstrap_container_image                        = "${local.docker_image}"
   container_cpu                                    = "${local.combined_settings["container_cpu"]}"
   container_memory                                 = "${local.combined_settings["container_memory"]}"
@@ -137,7 +138,7 @@ module "service" {
   capacity_properties_desired_max_capacity         = "${local.combined_settings["max_capacity"]}"
   capacity_properties_desired_min_capacity         = "${local.combined_settings["min_capacity"]}"
   load_balancing_type                              = "${local.combined_settings["load_balancing_type"]}"
-  load_balancing_properties_redirect_http_to_https = true
+  load_balancing_properties_redirect_http_to_https = "${local.combined_settings["lb_redirect_http_to_https"]}"
   load_balancing_properties_lb_listener_arn_https  = "${data.aws_lb_listener.https.arn}"
   load_balancing_properties_lb_listener_arn        = "${data.aws_lb_listener.http.arn}"
   load_balancing_properties_lb_vpc_id              = "${data.aws_security_group.lb_sg.vpc_id}"
@@ -162,7 +163,7 @@ module "service" {
 
 resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   count               = "${local.has_lb ? 1 : 0}"
-  alarm_name          = "${local.combined_settings["name"]}-unhealthy-host-count"
+  alarm_name          = "${var.name}-unhealthy-host-count"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "UnHealthyHostCount"
@@ -170,14 +171,14 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   period              = 60
   statistic           = "Minimum"
   threshold           = 0
-  treat_missing_data  = "breaching"                                               # "missing"
+  treat_missing_data  = "breaching"                        # "missing"
 
   dimensions = {
     LoadBalancer = "${data.aws_lb.lb.arn_suffix}"
     TargetGroup  = "${data.aws_lb_target_group.tg.arn_suffix}"
   }
 
-  alarm_description = "This metric monitors unhealthy hosts in the ${local.combined_settings["name"]} service"
+  alarm_description = "This metric monitors unhealthy hosts in the ${var.name} service"
   alarm_actions     = []
   actions_enabled   = false
 }
