@@ -4,7 +4,7 @@ variable "create" {
 }
 
 variable "name" {
-	description = "The name of the project, must be unique and match"
+  description = "The name of the project, must be unique and match"
 }
 
 variable "shared_settings" {
@@ -19,6 +19,7 @@ variable "shared_settings" {
       region             # Region of the ECS Cluster
     }
   EOF
+
   type = "map"
 }
 
@@ -75,5 +76,11 @@ variable "environment_variables" {
 
 variable "environment_secrets" {
   description = "Environment secrets fed to the container from SSM keys"
+  default     = {}
+}
+
+variable "container_docker_labels" {
+  description = "Adds the key/value pairs as docker labels to the container"
+  type        = "map"
   default     = {}
 }

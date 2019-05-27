@@ -56,7 +56,6 @@ locals {
     compact(split(",", local.cloudwatch_enabled != 1 ? "" :  "CLOUD_AWS_REGION_STATIC,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_NAMESPACE,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_ENABLED,MANAGEMENT_METRICS_ENABLE,MANAGEMENT_METRICS_ENABLE_KIT,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_BATCHSIZE" )),
     compact(split(",", local.cloudwatch_enabled != 1 ? "" :  "${local.combined_settings["region"]},Service/${var.name},true,false,true,20" ))
   )}"
-
   combined_environment_variables = "${merge(var.environment_variables, local.cloudwatch_env)}"
 }
 
