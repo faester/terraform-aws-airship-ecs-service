@@ -28,10 +28,12 @@ variable "settings" {
     Sample:
 
     settings = {
-      bootstrap_container_image # The docker image location. Set to USE_DEFAULT or give a docker image path with version label      
+      bootstrap_container_image # The docker image location. Set to USE_DEFAULT or give a docker image path with version label
+      cloud_watch_metrics       # If true, expose Micrometer metrics in CloudWatch (default is false)      
       container_cpu             # Defines the needed cpu for the container (default is 256)
       container_memory          # Defines the hard memory limit of the container (default is 512)
       container_port            # Container port (default is 8080)
+      image_version             # Docker image version (default is "latest"). This is only relavant if "bootstrap_container_image" is not set
       initial_capacity          # The desired amount of tasks for a service, when autoscaling is used desired_capacity is only used initially (default is 1)
       kms_keys                  # Comma separated list of KMS keys that the service can access (default is "")
       lb_health_uri             # Load balancer health check URL  (default is "/health")

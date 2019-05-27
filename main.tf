@@ -4,6 +4,8 @@ locals {
     container_cpu             = 256
     container_memory          = 512
     container_port            = 8080
+    cloud_watch_metrics       = false
+    image_version             = "latest"
     initial_capacity          = 1
     min_capacity              = 1
     max_capacity              = 2
@@ -31,14 +33,38 @@ locals {
 
   docker_image = "${local.combined_settings["bootstrap_container_image"] != "USE_DEFAULT" ? 
     local.combined_settings["bootstrap_container_image"] : 
-    join("",list(local.combined_settings["mgmt_account"],".dkr.ecr.eu-west-1.amazonaws.com/",var.name,":latest"))}"
+    join("",list(local.combined_settings["mgmt_account"],".dkr.ecr.eu-west-1.amazonaws.com/",var.name,":",local.combined_settings["image_version"]))}"
 
   environment_name = "${local.combined_settings["environment_name"]}"
+
+  cloudwatch_enabled = "${local.combined_settings["cloud_watch_metrics"]}"
+
+  # "cloudwatch_env" overwrites the environment provides by the variables. This ensures that cut and paste can't mess with the namespace names for CloudWatch.
+  # This is a workaround because TF 0.11 doesn't support conditionals with maps or lists :(
+  # The code essentially sets:
+  #    cloudwatch_env = local.cloudwatch_enabled ? {
+  #      CLOUD_AWS_REGION_STATIC                        = "${local.combined_settings["region"]}"
+  #      MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_NAMESPACE = "Service/${var.name}"
+  #      MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_ENABLED   = "true"                
+  #      MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_BATCHSIZE = 20
+  #      MANAGEMENT_METRICS_ENABLE                      = "false"              # Disable all default metrics
+  #      MANAGEMENT_METRICS_ENABLE_KIT                  = "true"               # Enable those that are previfxed with "kit."
+  #    } : {}
+  # 0.12 fixes this
+
+  cloudwatch_env = "${   zipmap(
+    compact(split(",", local.cloudwatch_enabled != 1 ? "" :  "CLOUD_AWS_REGION_STATIC,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_NAMESPACE,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_ENABLED,MANAGEMENT_METRICS_ENABLE,MANAGEMENT_METRICS_ENABLE_KIT,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_BATCHSIZE" )),
+    compact(split(",", local.cloudwatch_enabled != 1 ? "" :  "${local.combined_settings["region"]},Service/${var.name},true,false,true,20" ))
+  )}"
+
+  combined_environment_variables = "${merge(var.environment_variables, local.cloudwatch_env)}"
 }
 
 ####################################################################################################
 # <Data Sources>
 ####################################################################################################
+
+data "aws_caller_identity" "current" {}
 
 data "aws_security_group" "lb_sg" {
   tags {
@@ -114,7 +140,6 @@ resource "aws_security_group" "sg" {
   }
 }
 
-# TODO: Expose all terraform-aws-airship-ecs-service parameters
 module "service" {
   source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=support_container_secrets"
 
@@ -126,7 +151,7 @@ module "service" {
   container_cpu                                    = "${local.combined_settings["container_cpu"]}"
   container_memory                                 = "${local.combined_settings["container_memory"]}"
   container_port                                   = "${local.combined_settings["container_port"]}"
-  container_envvars                                = "${var.environment_variables}"
+  container_envvars                                = "${local.combined_environment_variables}"
   container_secrets                                = "${var.environment_secrets}"
   container_healthcheck                            = "${var.container_healthcheck}"
   container_secrets_enabled                        = "${length(keys(var.environment_secrets)) > 0}"
@@ -161,6 +186,7 @@ module "service" {
   }
 }
 
+# Default alarm when the number of unhealthy hosts exceed 0
 resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   count               = "${local.has_lb ? 1 : 0}"
   alarm_name          = "${var.name}-unhealthy-host-count"
@@ -181,6 +207,13 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   alarm_description = "This metric monitors unhealthy hosts in the ${var.name} service"
   alarm_actions     = []
   actions_enabled   = false
+}
+
+# Grant access to CloudWatch metrics
+resource "aws_iam_role_policy_attachment" "cloudwatch-metrics-access" {
+  count      = "${local.cloudwatch_enabled ? 1 : 0}"
+  role       = "${module.service.ecs_taskrole_name}"
+  policy_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:policy/${local.environment_name}-cloudwatch-metrics-access"
 }
 
 ####################################################################################################
