@@ -27,7 +27,7 @@ variable "settings" {
   description = <<EOF
     The are the settings that are typically shared between all services. If a value is present it the "settings" variable, it overrides the value here (if any).
     Sample:
-
+```
     settings = {
       bootstrap_container_image # The docker image location. Set to USE_DEFAULT or give a docker image path with version label
       cloud_watch_metrics       # If true, expose Micrometer metrics in CloudWatch (default is false)      
@@ -37,11 +37,12 @@ variable "settings" {
       image_version             # Docker image version (default is "latest"). This is only relavant if "bootstrap_container_image" is not set
       initial_capacity          # The desired amount of tasks for a service, when autoscaling is used desired_capacity is only used initially (default is 1)
       kms_keys                  # Comma separated list of KMS keys that the service can access (default is "")
+      lb_name                   # The name of the loadbalancer to attach to (default is "${shared_settings.environment_name}-ecs-external")
       lb_health_uri             # Load balancer health check URL  (default is "/health")
       lb_healthy_threshold      # The number of consecutive successful health checks required before considering an unhealthy target healthy (default is 3)
       lb_redirect_http_to_https # Redirect all HTTP requests to HTTPS (default is true)
       lb_unhealthy_threshold    # The number of consecutive successful health checks required before considering an healthy target unhealthy (default is 3)
-      load_balancing_type       # The load balancer type ("application"/"none"). (Default is "application")
+      load_balancing_type       # The load balancer type. Set to "none", or leave blank to determine dynamically
       max_capacity              # When autoscaling is activated, it sets the maximum of tasks to be available for this service (default is 2)
       min_capacity              # When autoscaling is activated, it sets the minimum of tasks to be available for this service (default is 1)
       platform                  # Either FARGATE or EC2 (default is "FARGATE")
@@ -49,6 +50,7 @@ variable "settings" {
       s3_rw_paths               # Comma separated list of S3 Bucket/Prefixes that the service can access (default is "")
       ssm_paths                 # Comma separated list of SSM keys that the service can access (default is "")
     }
+```
   EOF
 
   type = "map"

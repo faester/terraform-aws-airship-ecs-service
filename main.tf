@@ -9,11 +9,12 @@ locals {
     initial_capacity          = 1
     min_capacity              = 1
     max_capacity              = 2
+    lb_name                   = ""
     lb_health_uri             = "/health"
     lb_unhealthy_threshold    = 3
     lb_healthy_threshold      = 3
     lb_redirect_http_to_https = true
-    load_balancing_type       = "application"
+    load_balancing_type       = ""
     kms_keys                  = ""
     ssm_paths                 = ""
     s3_ro_paths               = ""
@@ -37,6 +38,7 @@ locals {
 
   environment_name = "${local.combined_settings["environment_name"]}"
 
+  lb_name = "${length(local.combined_settings["lb_name"]) == 0 ? "${local.environment_name}-ecs-external": "${local.combined_settings["lb_name"]}"}"
   cloudwatch_enabled = "${local.combined_settings["cloud_watch_metrics"]}"
 
   # "cloudwatch_env" overwrites the environment provides by the variables. This ensures that cut and paste can't mess with the namespace names for CloudWatch.
@@ -86,8 +88,13 @@ data "aws_ecs_cluster" "cluster" {
 }
 
 data "aws_lb" "lb" {
-  name = "${local.environment_name}-ecs-external"
+  name = "${local.lb_name}"
 }
+
+locals {
+  load_balancing_type = "${length(local.combined_settings["load_balancing_type"]) == 0 ? "${data.aws_lb.lb.load_balancer_type}": "${local.combined_settings["load_balancing_type"]}"}"
+}
+
 
 data "aws_lb_listener" "http" {
   load_balancer_arn = "${data.aws_lb.lb.arn}"
@@ -161,7 +168,7 @@ module "service" {
   capacity_properties_desired_capacity             = "${local.combined_settings["initial_capacity"]}"
   capacity_properties_desired_max_capacity         = "${local.combined_settings["max_capacity"]}"
   capacity_properties_desired_min_capacity         = "${local.combined_settings["min_capacity"]}"
-  load_balancing_type                              = "${local.combined_settings["load_balancing_type"]}"
+  load_balancing_type                              = "${local.load_balancing_type}"
   load_balancing_properties_redirect_http_to_https = "${local.combined_settings["lb_redirect_http_to_https"]}"
   load_balancing_properties_lb_listener_arn_https  = "${data.aws_lb_listener.https.arn}"
   load_balancing_properties_lb_listener_arn        = "${data.aws_lb_listener.http.arn}"
