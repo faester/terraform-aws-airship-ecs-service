@@ -66,7 +66,7 @@ locals {
 data "aws_caller_identity" "current" {}
 
 data "aws_security_group" "lb_sg" {
-  tags {
+  tags = {
     Environment = "${local.environment_name}"
     Name        = "${local.environment_name}-ecs-lb-sg"
   }
@@ -132,7 +132,7 @@ resource "aws_security_group" "sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags {
+  tags = {
     Terraform   = true
     Name        = "${local.environment_name}-${var.name}_sg"
     Environment = "${local.environment_name}"
