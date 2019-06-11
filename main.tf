@@ -72,7 +72,8 @@
  * 
  * | Name | Description | Default |
  * |------|-------------|:-----:|
- * | bootstrap_container_image | The docker image location. Set to USE_DEFAULT or give a docker image path with version label | "" |
+ * | api_gateway               | The service uses API gateway as an interface | "false" |
+ * | bootstrap_container_image | The docker image location. | "USE_DEFAULT" |
  * | cloud_watch_metrics       | If true, expose Micrometer metrics in CloudWatch | `false |
  * | container_cpu             | Defines the needed cpu for the container | `256` |
  * | container_memory          | Defines the hard memory limit of the container | `512` |
@@ -80,7 +81,6 @@
  * | image_version             | Docker image version. This is only relavant if "bootstrap_container_image" is not set | "latest" |
  * | initial_capacity          | The desired amount of tasks for a service, when autoscaling is used desired_capacity is only used initially | `1` |
  * | kms_keys                  | Comma separated list of KMS keys that the service can access | "" |
- * | lb_name                   | The name of the loadbalancer to attach to | "${shared_settings.environment_name}-ecs-external" |
  * | lb_health_uri             | Load balancer health check URL | "/health" |
  * | lb_healthy_threshold      | The number of consecutive successful health checks required before considering an unhealthy target healthy | `3` |
  * | lb_redirect_http_to_https | Redirect all HTTP requests to HTTPS | `true` |
@@ -88,6 +88,7 @@
  * | load_balancing_type       | The load balancer type. Set to "none", or leave blank to determine dynamically | "" |
  * | max_capacity              | When autoscaling is activated, it sets the maximum of tasks to be available for this service | `2` |
  * | min_capacity              | When autoscaling is activated, it sets the minimum of tasks to be available for this service | `1` |
+ * | nlb_port                  | The port on the NLB dedicated to the service. Does not have to match the `container_port`, but *must be unique on the NLB*. | `container_port` |
  * | platform                  | Either FARGATE or EC2 | "FARGATE" |
  * | s3_ro_paths               | Comma separated list of S3 Bucket/Prefixes that the service can access | "" |
  * | s3_rw_paths               | Comma separated list of S3 Bucket/Prefixes that the service can access | "" |
@@ -118,6 +119,7 @@
  */
 locals {
   default_settings = {
+    api_gateway               = false
     bootstrap_container_image = "USE_DEFAULT"
     container_cpu             = 256
     container_memory          = 512
@@ -127,13 +129,13 @@ locals {
     initial_capacity          = 1
     min_capacity              = 1
     max_capacity              = 2
-    lb_name                   = ""
     lb_health_uri             = "/health"
     lb_unhealthy_threshold    = 3
     lb_healthy_threshold      = 3
     lb_redirect_http_to_https = true
     load_balancing_type       = ""
     kms_keys                  = ""
+    nlb_port                  = -1
     ssm_paths                 = ""
     s3_ro_paths               = ""
     s3_rw_paths               = ""
@@ -150,13 +152,15 @@ locals {
   is_fargate = "${local.combined_settings["platform"] == "FARGATE"}"
   has_lb     = "${local.combined_settings["load_balancing_type"] != "none"}"
 
+  nlb_port = "${local.combined_settings["nlb_port"] == -1 ? local.combined_settings["container_port"] : local.combined_settings["nlb_port"]}"
+
   docker_image = "${local.combined_settings["bootstrap_container_image"] != "USE_DEFAULT" ? 
     local.combined_settings["bootstrap_container_image"] : 
     join("",list(local.combined_settings["mgmt_account"],".dkr.ecr.eu-west-1.amazonaws.com/",var.name,":",local.combined_settings["image_version"]))}"
 
   environment_name = "${local.combined_settings["environment_name"]}"
 
-  lb_name = "${length(local.combined_settings["lb_name"]) == 0 ? "${local.environment_name}-ecs-external": "${local.combined_settings["lb_name"]}"}"
+  lb_name            = "${local.combined_settings["api_gateway"] ? "${local.environment_name}-ecs-internal": "${local.environment_name}-ecs-external"}"
   cloudwatch_enabled = "${local.combined_settings["cloud_watch_metrics"]}"
 
   # "cloudwatch_env" overwrites the environment provides by the variables. This ensures that cut and paste can't mess with the namespace names for CloudWatch.
@@ -213,7 +217,6 @@ locals {
   load_balancing_type = "${length(local.combined_settings["load_balancing_type"]) == 0 ? "${data.aws_lb.lb.load_balancer_type}": "${local.combined_settings["load_balancing_type"]}"}"
 }
 
-
 data "aws_lb_listener" "http" {
   load_balancer_arn = "${data.aws_lb.lb.arn}"
   port              = 80
@@ -244,10 +247,20 @@ resource "aws_security_group" "sg" {
   vpc_id      = "${data.aws_security_group.lb_sg.vpc_id}"
 
   ingress {
-    from_port       = "${local.combined_settings["container_port"]}"
-    to_port         = "${local.combined_settings["container_port"]}"
-    protocol        = "tcp"
-    security_groups = ["${data.aws_security_group.lb_sg.id}"]
+    from_port = "${local.combined_settings["container_port"]}"
+    to_port   = "${local.combined_settings["container_port"]}"
+    protocol  = "tcp"
+
+    /*
+                        This is not optimal, but NLBs don't have a security group, and finding the LB's network interface 
+                        ip adresses for a more specific filter proved difficult.
+
+                        In the end, all services are hosted in private subnets, so allowing full access can be excused ... 
+                        however, one suborned service will be able to talk to all others.
+                        */
+    cidr_blocks = ["0.0.0.0/0"]
+
+    #security_groups = ["${data.aws_security_group.lb_sg.id}"] 
   }
 
   egress {
@@ -287,6 +300,7 @@ module "service" {
   capacity_properties_desired_max_capacity         = "${local.combined_settings["max_capacity"]}"
   capacity_properties_desired_min_capacity         = "${local.combined_settings["min_capacity"]}"
   load_balancing_type                              = "${local.load_balancing_type}"
+  load_balancing_properties_nlb_listener_port      = "${local.nlb_port}"
   load_balancing_properties_redirect_http_to_https = "${local.combined_settings["lb_redirect_http_to_https"]}"
   load_balancing_properties_lb_listener_arn_https  = "${data.aws_lb_listener.https.arn}"
   load_balancing_properties_lb_listener_arn        = "${data.aws_lb_listener.http.arn}"
