@@ -1,7 +1,7 @@
 /**
  * # terraform-ecs-service
  * 
- * Terraform module that wraps the [Airship's ECS service module](https://registry.terraform.io/modules/blinkist/airship-ecs-service/aws/0.9.3).
+ * Terraform module that wraps the [Airship's ECS service module](https://registry.terraform.io/modules/blinkist/airship-ecs-service/aws).
  * 
  * It hides some of the less useful features, and provides a way to share common settings between multiple services.
  * 
@@ -72,16 +72,17 @@
  * 
  * | Name | Description | Default |
  * |------|-------------|:-----:|
- * | api_gateway               | The service uses API gateway as an interface | "false" |
+ * | api_gateway               | The service uses API gateway as an interface | `false` |
  * | bootstrap_container_image | The docker image location. | "USE_DEFAULT" |
- * | cloud_watch_metrics       | If true, expose Micrometer metrics in CloudWatch | `false |
+ * | cloud_watch_metrics       | If true, expose Micrometer metrics in CloudWatch | `false` |
  * | container_cpu             | Defines the needed cpu for the container | `256` |
  * | container_memory          | Defines the hard memory limit of the container | `512` |
  * | container_port            | Container port | `8080` |
+ * | force_bootstrap_container_image | Force a new taskdefintion with the image in the 'bootstrap_container_image' | false |
  * | image_version             | Docker image version. This is only relavant if "bootstrap_container_image" is not set | "latest" |
  * | initial_capacity          | The desired amount of tasks for a service, when autoscaling is used desired_capacity is only used initially | `1` |
  * | kms_keys                  | Comma separated list of KMS keys that the service can access | "" |
- * | lb_health_uri             | Load balancer health check URL | "/health" |
+ * | lb_health_uri             | Load balancer health check URL | "/actuator/health" |
  * | lb_healthy_threshold      | The number of consecutive successful health checks required before considering an unhealthy target healthy | `3` |
  * | lb_redirect_http_to_https | Redirect all HTTP requests to HTTPS | `true` |
  * | lb_unhealthy_threshold    | The number of consecutive successful health checks required before considering an healthy target unhealthy | `3` |
@@ -119,27 +120,28 @@
  */
 locals {
   default_settings = {
-    api_gateway               = false
-    bootstrap_container_image = "USE_DEFAULT"
-    container_cpu             = 256
-    container_memory          = 512
-    container_port            = 8080
-    cloud_watch_metrics       = false
-    image_version             = "latest"
-    initial_capacity          = 1
-    min_capacity              = 1
-    max_capacity              = 2
-    lb_health_uri             = "/health"
-    lb_unhealthy_threshold    = 3
-    lb_healthy_threshold      = 3
-    lb_redirect_http_to_https = true
-    load_balancing_type       = ""
-    kms_keys                  = ""
-    nlb_port                  = -1
-    ssm_paths                 = ""
-    s3_ro_paths               = ""
-    s3_rw_paths               = ""
-    platform                  = "FARGATE"
+    api_gateway                     = false
+    bootstrap_container_image       = "USE_DEFAULT"
+    container_cpu                   = 256
+    container_memory                = 512
+    container_port                  = 8080
+    cloud_watch_metrics             = false
+    force_bootstrap_container_image = false
+    image_version                   = "latest"
+    initial_capacity                = 1
+    min_capacity                    = 1
+    max_capacity                    = 2
+    lb_health_uri                   = "/actuator/health"
+    lb_unhealthy_threshold          = 3
+    lb_healthy_threshold            = 3
+    lb_redirect_http_to_https       = true
+    load_balancing_type             = ""
+    kms_keys                        = ""
+    nlb_port                        = -1
+    ssm_paths                       = ""
+    s3_ro_paths                     = ""
+    s3_rw_paths                     = ""
+    platform                        = "FARGATE"
   }
 
   combined_settings = "${merge(local.default_settings,var.shared_settings,var.settings)}"
@@ -205,6 +207,21 @@ data "aws_subnet_ids" "private" {
   }
 }
 
+# Create a list of network interfaces associated with an ELB in the private subnets, which is always an NLB
+data "aws_network_interface" "nlb" {
+  count = "${local.combined_settings["api_gateway"] ? length(data.aws_subnet_ids.private.ids) : 0}"
+
+  filter = {
+    name   = "description"
+    values = ["ELB ${data.aws_lb.lb.arn_suffix}"]
+  }
+
+  filter = {
+    name   = "subnet-id"
+    values = ["${element(data.aws_subnet_ids.private.ids, count.index)}"]
+  }
+}
+
 data "aws_ecs_cluster" "cluster" {
   cluster_name = "${local.environment_name}"
 }
@@ -246,30 +263,6 @@ resource "aws_security_group" "sg" {
   description = "Allow inbound traffic to port ${local.combined_settings["container_port"]} on ${var.name}"
   vpc_id      = "${data.aws_security_group.lb_sg.vpc_id}"
 
-  ingress {
-    from_port = "${local.combined_settings["container_port"]}"
-    to_port   = "${local.combined_settings["container_port"]}"
-    protocol  = "tcp"
-
-    /*
-                        This is not optimal, but NLBs don't have a security group, and finding the LB's network interface 
-                        ip adresses for a more specific filter proved difficult.
-
-                        In the end, all services are hosted in private subnets, so allowing full access can be excused ... 
-                        however, one suborned service will be able to talk to all others.
-                        */
-    cidr_blocks = ["0.0.0.0/0"]
-
-    #security_groups = ["${data.aws_security_group.lb_sg.id}"] 
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   tags = {
     Terraform   = true
     Name        = "${local.environment_name}-${var.name}_sg"
@@ -277,8 +270,40 @@ resource "aws_security_group" "sg" {
   }
 }
 
+resource "aws_security_group_rule" "allow_nlb" {
+  count             = "${length(data.aws_network_interface.nlb.*.private_ips) > 0 ? 1 : 0}"
+  type              = "ingress"
+  from_port         = "${local.combined_settings["container_port"]}"
+  to_port           = "${local.combined_settings["container_port"]}"
+  protocol          = "tcp"
+  cidr_blocks       = ["${formatlist("%s/32",flatten(data.aws_network_interface.nlb.*.private_ips))}"]
+  description       = "Permit connection from NLB"
+  security_group_id = "${aws_security_group.sg.id}"
+}
+
+resource "aws_security_group_rule" "allow_alb" {
+  type                     = "ingress"
+  from_port                = "${local.combined_settings["container_port"]}"
+  to_port                  = "${local.combined_settings["container_port"]}"
+  protocol                 = "tcp"
+  source_security_group_id = "${data.aws_security_group.lb_sg.id}"
+  description              = "Permit connection from ALB"
+  security_group_id        = "${aws_security_group.sg.id}"
+}
+
+resource "aws_security_group_rule" "allow_all_egress" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = -1
+  cidr_blocks       = ["0.0.0.0/0"]
+  description       = "Permit all traffic out"
+  security_group_id = "${aws_security_group.sg.id}"
+}
+
 module "service" {
-  source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=support_container_secrets"
+  source  = "blinkist/airship-ecs-service/aws"
+  version = "~> 0.9"
 
   #source = "../terraform-aws-airship-ecs-service"
 
@@ -293,6 +318,7 @@ module "service" {
   container_healthcheck                            = "${var.container_healthcheck}"
   container_secrets_enabled                        = "${length(keys(var.environment_secrets)) > 0}"
   fargate_enabled                                  = "${local.is_fargate ? 1 : 0}"
+  force_bootstrap_container_image                  = "${local.combined_settings["force_bootstrap_container_image"]}"
   awsvpc_enabled                                   = "${local.is_fargate ? 1 : 0}"
   awsvpc_security_group_ids                        = ["${aws_security_group.sg.*.id}"]
   awsvpc_subnets                                   = ["${compact(split(",", local.is_fargate ? join(",", data.aws_subnet_ids.private.ids ) : ""))}"]

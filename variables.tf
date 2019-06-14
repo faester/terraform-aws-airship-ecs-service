@@ -9,17 +9,17 @@ variable "name" {
 
 variable "shared_settings" {
   description = "These are the settings that are shared between all services"
-  type = "map"
+  type        = "map"
 }
 
 variable "settings" {
   description = "If a value is present it the `settings` variable, it overrides the value from `shared_settings`"
-  type = "map"
+  type        = "map"
 }
 
 variable "container_healthcheck" {
   description = "A custom container health check."
-  default = {}
+  default     = {}
 }
 
 variable "environment_variables" {
