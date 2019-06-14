@@ -254,7 +254,9 @@ data "aws_lb_target_group" "tg" {
 ####################################################################################################
 
 ####################################################################################################
-# <Service Definition>
+# <Security Groups>
+# -----------------
+# AWSVPC specific SG, i.e. only for Fargate services.
 ####################################################################################################
 
 resource "aws_security_group" "sg" {
@@ -271,7 +273,7 @@ resource "aws_security_group" "sg" {
 }
 
 resource "aws_security_group_rule" "allow_nlb" {
-  count             = "${length(data.aws_network_interface.nlb.*.private_ips) > 0 ? 1 : 0}"
+  count             = "${(var.create && local.is_fargate) && length(data.aws_network_interface.nlb.*.private_ips) > 0 ? 1 : 0}"
   type              = "ingress"
   from_port         = "${local.combined_settings["container_port"]}"
   to_port           = "${local.combined_settings["container_port"]}"
@@ -282,6 +284,7 @@ resource "aws_security_group_rule" "allow_nlb" {
 }
 
 resource "aws_security_group_rule" "allow_alb" {
+  count                    = "${var.create && local.is_fargate ? 1 : 0}"
   type                     = "ingress"
   from_port                = "${local.combined_settings["container_port"]}"
   to_port                  = "${local.combined_settings["container_port"]}"
@@ -292,6 +295,7 @@ resource "aws_security_group_rule" "allow_alb" {
 }
 
 resource "aws_security_group_rule" "allow_all_egress" {
+  count             = "${var.create && local.is_fargate ? 1 : 0}"
   type              = "egress"
   from_port         = 0
   to_port           = 0
@@ -300,6 +304,14 @@ resource "aws_security_group_rule" "allow_all_egress" {
   description       = "Permit all traffic out"
   security_group_id = "${aws_security_group.sg.id}"
 }
+
+####################################################################################################
+# </Security Groups>
+####################################################################################################
+
+####################################################################################################
+# <Service Definition>
+####################################################################################################
 
 module "service" {
   source  = "blinkist/airship-ecs-service/aws"
@@ -361,7 +373,7 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   period              = 60
   statistic           = "Minimum"
   threshold           = 0
-  treat_missing_data  = "breaching"                        # "missing"
+  treat_missing_data  = "breaching"                                                                    # "missing"
 
   dimensions = {
     LoadBalancer = "${data.aws_lb.lb.arn_suffix}"
