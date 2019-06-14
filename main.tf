@@ -357,7 +357,7 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "UnHealthyHostCount"
-  namespace           = "AWS/ApplicationELB"
+  namespace           = "AWS/${local.combined_settings["api_gateway"] ? "Network" : "Application"}ELB"
   period              = 60
   statistic           = "Minimum"
   threshold           = 0
