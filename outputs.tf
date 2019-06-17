@@ -25,10 +25,6 @@ output "ecs_taskrole_arn" {
   value = "${module.service.ecs_taskrole_arn}"
 }
 
-output "ecs_taskrole_name" {
-  value = "${module.service.ecs_taskrole_name}"
-}
-
 output "has_changed" {
   value = "${module.service.has_changed}"
 }
