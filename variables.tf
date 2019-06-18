@@ -27,9 +27,9 @@ variable "environment_variables" {
   default     = {}
 }
 
-variable "environment_secrets" {
-  description = "Environment secrets fed to the container from SSM keys"
-  default     = {}
+variable "ssm_vars" {
+  description = "A list of SSM variables that will be wired in as environment vars. Names should be lowercase, and use underscores instead of dots"
+  default = []
 }
 
 variable "container_docker_labels" {

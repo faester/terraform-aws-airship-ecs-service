@@ -30,7 +30,7 @@
  * ```
  * 
  * Services are deployed by defining a module that combines a set of shared settings with some service specific `settings` settings. Finally the container can be deployed with a set of predefined environment variables.
- * Env vars can be either injected directly using the `environment_variables` map, or placed in SSM and injected as key references using the `environment_secrets` map.
+ * Env vars can be either injected directly using the `environment_variables` map, or placed in SSM and injected as key references using the `ssm_vars` list.
  * 
  * ## Simple example
  * 
@@ -38,22 +38,19 @@
  * 
  * ```hcl
  * module "linkmobility" {
- *   source = "git::https://git:<ACCESS_TOKEN>@git.rootdom.dk/KIT-ITL/terraform-ecs-service.git?ref=1.2.0"
+ *   source = "git::https://git:<ACCESS_TOKEN>@git.rootdom.dk/KIT-ITL/terraform-ecs-service.git?ref=1.5.0"
  * 
  *   shared_settings = "${local.shared_service_settings}"
  *   name            = "dummy-service"
  * 
- *   settings {
+ *   settings = {
  *     bootstrap_container_image = "nginx:stable"
  *     container_port            = 80
- *     ssm_paths                 = "dummy-service"
  *   }
- *   environment_variables {
+ *   environment_variables = {
  *     deployed_by = "Mads Hvelplund <mads.hvelplund@jppol.dk>"
  *   }
- *   environment_secrets {
- *     PASSWORD = "/dummy-service/password"
- *   }
+ *   ssm_vars = ["db_password"]
  * }
  * ```
  * 
@@ -93,7 +90,7 @@
  * | platform                  | Either FARGATE or EC2 | "FARGATE" |
  * | s3_ro_paths               | Comma separated list of S3 Bucket/Prefixes that the service can access | "" |
  * | s3_rw_paths               | Comma separated list of S3 Bucket/Prefixes that the service can access | "" |
- * | ssm_paths                 | Comma separated list of SSM keys that the service can access | "" |
+ * | ssm_paths                 | Comma separated list of SSM keys that the service can access. If there are 'ssm_vars' they automatically get added to the list | "" |
  * 
  * ## Sample `container_healthcheck`
  * 
@@ -147,7 +144,11 @@ locals {
   combined_settings = "${merge(local.default_settings,var.shared_settings,var.settings)}"
 
   kms_keys    = "${compact(split(",", local.combined_settings["kms_keys"]))}"
-  ssm_paths   = "${compact(split(",", local.combined_settings["ssm_paths"]))}"
+  
+  ssm_vars_path = "${local.combined_settings["ssm_paths"]},${length(var.ssm_vars) == 0 ? "" : "${local.environment_name}/${var.name}"}"
+  ssm_paths   = "${compact(distinct(split(",", local.ssm_vars_path)))}"
+
+
   s3_ro_paths = "${compact(split(",", local.combined_settings["s3_ro_paths"]))}"
   s3_rw_paths = "${compact(split(",", local.combined_settings["s3_rw_paths"]))}"
 
@@ -188,6 +189,25 @@ locals {
 ####################################################################################################
 # <Data Sources>
 ####################################################################################################
+
+data "aws_ssm_parameter" "parameters" {
+  count = "${length(var.ssm_vars)}"
+  name = "/${local.environment_name}/${var.name}/${var.ssm_vars[count.index]}"
+}
+
+data "null_data_source" "parameters" {
+  count = "${length(var.ssm_vars)}"
+
+  inputs = {
+    key   = "${upper(var.ssm_vars[count.index])}"
+    value = "${element(data.aws_ssm_parameter.parameters.*.arn, count.index)}"
+  }
+}
+
+locals {
+  environment_secrets = "${zipmap(data.null_data_source.parameters.*.outputs.key, data.null_data_source.parameters.*.outputs.value)}"
+}
+
 
 data "aws_caller_identity" "current" {}
 
@@ -326,9 +346,9 @@ module "service" {
   container_memory                                 = "${local.combined_settings["container_memory"]}"
   container_port                                   = "${local.combined_settings["container_port"]}"
   container_envvars                                = "${local.combined_environment_variables}"
-  container_secrets                                = "${var.environment_secrets}"
+  container_secrets                                = "${local.environment_secrets}"
   container_healthcheck                            = "${var.container_healthcheck}"
-  container_secrets_enabled                        = "${length(keys(var.environment_secrets)) > 0}"
+  container_secrets_enabled                        = "${length(keys(local.environment_secrets)) > 0}"
   fargate_enabled                                  = "${local.is_fargate ? 1 : 0}"
   force_bootstrap_container_image                  = "${local.combined_settings["force_bootstrap_container_image"]}"
   awsvpc_enabled                                   = "${local.is_fargate ? 1 : 0}"
