@@ -104,8 +104,12 @@
  *   startPeriod = 30
  * }
  * ```
- * 
- * 
+ *
+ * ## Scaling
+ * Provide scaling rules to override default scaling. There are more details at
+ * https://docs.aws.amazon.com/autoscaling/application/userguide/what-is-application-auto-scaling.html
+ * and specifically https://docs.aws.amazon.com/autoscaling/application/userguide/application-auto-scaling-step-scaling-policies.html
+ *
  * ## Doc generation
  * 
  * Documentation should be modified within `main.tf` and generated using [terraform-docs](https://github.com/segmentio/terraform-docs).
@@ -113,6 +117,10 @@
  * 
  * ```bash
  * terraform-docs md . > README.md
+ * ```
+ * In powershell 
+ * ```
+ * terraform-docs md . |Out-File -Encoding utf8 -filepath README.md
  * ```
  */
 locals {
@@ -143,11 +151,10 @@ locals {
 
   combined_settings = "${merge(local.default_settings,var.shared_settings,var.settings)}"
 
-  kms_keys    = "${compact(split(",", local.combined_settings["kms_keys"]))}"
-  
-  ssm_vars_path = "${local.combined_settings["ssm_paths"]},${length(var.ssm_vars) == 0 ? "" : "${local.environment_name}/${var.name}"}"
-  ssm_paths   = "${compact(distinct(split(",", local.ssm_vars_path)))}"
+  kms_keys = "${compact(split(",", local.combined_settings["kms_keys"]))}"
 
+  ssm_vars_path = "${local.combined_settings["ssm_paths"]},${length(var.ssm_vars) == 0 ? "" : "${local.environment_name}/${var.name}"}"
+  ssm_paths     = "${compact(distinct(split(",", local.ssm_vars_path)))}"
 
   s3_ro_paths = "${compact(split(",", local.combined_settings["s3_ro_paths"]))}"
   s3_rw_paths = "${compact(split(",", local.combined_settings["s3_rw_paths"]))}"
@@ -192,7 +199,7 @@ locals {
 
 data "aws_ssm_parameter" "parameters" {
   count = "${length(var.ssm_vars)}"
-  name = "/${local.environment_name}/${var.name}/${var.ssm_vars[count.index]}"
+  name  = "/${local.environment_name}/${var.name}/${var.ssm_vars[count.index]}"
 }
 
 data "null_data_source" "parameters" {
@@ -207,7 +214,6 @@ data "null_data_source" "parameters" {
 locals {
   environment_secrets = "${zipmap(data.null_data_source.parameters.*.outputs.key, data.null_data_source.parameters.*.outputs.value)}"
 }
-
 
 data "aws_caller_identity" "current" {}
 
@@ -380,6 +386,7 @@ module "service" {
     Terraform   = true
     Environment = "${local.environment_name}"
   }
+  scaling_properties = "${var.scaling_rules}"
 }
 
 # Default alarm when the number of unhealthy hosts exceed 0
