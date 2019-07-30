@@ -32,12 +32,6 @@ variable "ssm_vars" {
   default     = []
 }
 
-variable "container_docker_labels" {
-  description = "Adds the key/value pairs as docker labels to the container"
-  type        = "map"
-  default     = {}
-}
-
 variable "scaling_rules" {
   description = " Autoscaling is enabled by default. It will scale based on average CPU consumption. Scale up look at cpu consumption in two consecutive observations with 5 minutes intervals. Scale down requires 4 consecutive observices with 4 minute * intervals. Default scale up threshold is 89 % cpu usage, while scale down threshold is 10 %. Scaling adds or removes 1 instance for each scaling event."
 
@@ -67,4 +61,23 @@ variable "scaling_rules" {
   ]
 
   type = "list"
+}
+
+# 
+variable "host_path_volumes" {
+  description = <<EOF
+NB: Only works for EC2 containers! List of host paths to add as volumes to the task, e.g. '{ name = "service-storage", host_path = "/mnt/efs/${var.service_name}" }'
+EOF
+
+  type    = "list"
+  default = []
+}
+
+variable "mountpoints" {
+  description = <<EOF
+NB: Only works for EC2 containers! List of mount points to add to every container in the task, e.g. '{ source_volume = "service-storage", container_path = "/efs", read_only = "false" }'
+EOF
+
+  type    = "list"
+  default = []
 }
