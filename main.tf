@@ -63,7 +63,7 @@
  * | mgmt_account       | Id of the management account containing ECR images |
  * | region             | Region of the ECS Cluster |
  * 
- * In addtion, any value from `settings` can be a shared setting.
+ * In addition, any value from `settings` can be a shared setting.
  * 
  * ## Valid values for `settings`
  * 
@@ -341,7 +341,7 @@ resource "aws_security_group_rule" "allow_all_egress" {
 
 module "service" {
   source  = "blinkist/airship-ecs-service/aws"
-  version = "~> 0.9"
+  version = "~> 0.9.0"
 
   #source = "../terraform-aws-airship-ecs-service"
 
@@ -387,6 +387,8 @@ module "service" {
     Environment = "${local.environment_name}"
   }
   scaling_properties = "${var.scaling_rules}"
+  host_path_volumes  = "${var.host_path_volumes}"
+  mountpoints        = "${var.mountpoints}"
 }
 
 # Default alarm when the number of unhealthy hosts exceed 0
