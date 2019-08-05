@@ -153,7 +153,7 @@ locals {
 
   kms_keys = "${compact(split(",", local.combined_settings["kms_keys"]))}"
 
-  ssm_vars_path = "${local.combined_settings["ssm_paths"]},${length(var.ssm_vars) == 0 ? "" : "${local.environment_name}/${var.name}"}"
+  ssm_vars_path = "${local.combined_settings["ssm_paths"]},${length(var.ssm_vars) == 0 ? "${local.environment_name}/placeholder" : "${local.environment_name}/${var.name}"}"
   ssm_paths     = "${compact(distinct(split(",", local.ssm_vars_path)))}"
 
   s3_ro_paths = "${compact(split(",", local.combined_settings["s3_ro_paths"]))}"
@@ -199,6 +199,10 @@ data "aws_ssm_parameter" "parameters" {
   name  = "/${local.environment_name}/${var.name}/${var.ssm_vars[count.index]}"
 }
 
+data "aws_ssm_parameter" "placeholder_parameter" {
+  name  = "/${local.environment_name}/placeholder"
+}
+
 data "null_data_source" "parameters" {
   count = "${length(var.ssm_vars)}"
 
@@ -209,7 +213,15 @@ data "null_data_source" "parameters" {
 }
 
 locals {
-  environment_secrets = "${zipmap(data.null_data_source.parameters.*.outputs.key, data.null_data_source.parameters.*.outputs.value)}"
+  _ssm_keys   = "${join(",", data.null_data_source.parameters.*.outputs.key)}"
+  _ssm_values = "${join(",", data.null_data_source.parameters.*.outputs.value)}"
+
+  # This is a work around to ensure that a task execution role is generated even when there are no secrets and we run in EC2
+  _place_holder_key   = "${local.is_fargate || length(var.ssm_vars) > 0 ? "" : "PLACEHOLDER"}"
+  _place_holder_value = "${local.is_fargate || length(var.ssm_vars) > 0 ? "" : "${data.aws_ssm_parameter.placeholder_parameter.arn}"}"
+  _combined_keys      = "${compact(split(",","${local._ssm_keys},${local._place_holder_key}"))}"
+  _combined_values    = "${compact(split(",","${local._ssm_values},${local._place_holder_value}"))}"
+  environment_secrets = "${zipmap(local._combined_keys, local._combined_values)}"
 }
 
 data "aws_caller_identity" "current" {}
@@ -391,7 +403,7 @@ module "service" {
 # Default alarm when the number of unhealthy hosts exceed 0
 resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
   count               = "${local.has_lb ? 1 : 0}"
-  alarm_name          = "${var.name}-unhealthy-host-count"
+  alarm_name          = "${local.environment_name}-${var.name}-unhealthy-host-count"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   metric_name         = "UnHealthyHostCount"
