@@ -180,15 +180,12 @@ locals {
   #      CLOUD_AWS_REGION_STATIC                        = "${local.combined_settings["region"]}"
   #      MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_NAMESPACE = "Service/${var.name}"
   #      MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_ENABLED   = "true"                
-  #      MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_BATCHSIZE = 20
-  #      MANAGEMENT_METRICS_ENABLE_ALL                  = "false"              # Disable all default metrics
-  #      MANAGEMENT_METRICS_ENABLE_KIT                  = "true"               # Enable those that are previfxed with "kit."
   #    } : {}
   # 0.12 fixes this
 
   cloudwatch_env = "${   zipmap(
-    compact(split(",", local.cloudwatch_enabled != 1 ? "" :  "CLOUD_AWS_REGION_STATIC,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_NAMESPACE,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_ENABLED,MANAGEMENT_METRICS_ENABLE_ALL,MANAGEMENT_METRICS_ENABLE_KIT,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_BATCHSIZE" )),
-    compact(split(",", local.cloudwatch_enabled != 1 ? "" :  "${local.combined_settings["region"]},Service/${var.name},true,false,true,20" ))
+    compact(split(",", local.cloudwatch_enabled != 1 ? "" :  "CLOUD_AWS_REGION_STATIC,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_NAMESPACE,MANAGEMENT_METRICS_EXPORT_CLOUDWATCH_ENABLED" )),
+    compact(split(",", local.cloudwatch_enabled != 1 ? "" :  "${local.combined_settings["region"]},Service/${var.name},true" ))
   )}"
   combined_environment_variables = "${merge(var.environment_variables, local.cloudwatch_env)}"
 }
