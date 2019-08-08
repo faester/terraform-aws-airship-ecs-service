@@ -200,7 +200,7 @@ data "aws_ssm_parameter" "parameters" {
 }
 
 data "aws_ssm_parameter" "placeholder_parameter" {
-  name  = "/${local.environment_name}/placeholder"
+  name  = "/${local.environment_name}/placeholder/placeholder"
 }
 
 data "null_data_source" "parameters" {
