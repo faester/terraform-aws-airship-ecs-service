@@ -400,7 +400,7 @@ module "service" {
   host_path_volumes  = "${var.host_path_volumes}"
   mountpoints        = "${var.mountpoints}"
 
-  is_scheduled_task         = "${length(var.scheduled_task_expression) == 0 ? false : true}"
+  is_scheduled_task         = "${length(var.scheduled_task_expression) > 0 ? true : false}"
   scheduled_task_expression = "${var.scheduled_task_expression}"
   scheduled_task_count      = "${var.scheduled_task_count}"
 }
