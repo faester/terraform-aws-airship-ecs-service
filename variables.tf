@@ -81,3 +81,13 @@ EOF
   type    = "list"
   default = []
 }
+
+variable "scheduled_task_expression" {
+  description = "If not blank, this service is actually a scheduled task with this scheduling expression. Example, cron(0 20 * * ? *) or rate(5 minutes)."
+  default     = ""
+}
+
+variable "scheduled_task_count" {
+  description = "The number of tasks to create based on the TaskDefinition"
+  default     = 1
+}

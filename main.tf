@@ -349,10 +349,9 @@ resource "aws_security_group_rule" "allow_all_egress" {
 ####################################################################################################
 
 module "service" {
-  source  = "blinkist/airship-ecs-service/aws"
-  version = "~> 0.9.0"
-
+  #source  = "blinkist/airship-ecs-service/aws"  #version = "~> 0.9.0"
   #source = "../terraform-aws-airship-ecs-service"
+  source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=scheduled_task_support"
 
   create                                           = "${var.create}"
   name                                             = "${var.name}"                                                                                   # TODO: Prefix with envname?
@@ -391,13 +390,19 @@ module "service" {
   ssm_paths                                        = ["${local.ssm_paths}"]
   s3_rw_paths                                      = ["${local.s3_rw_paths}"]
   s3_ro_paths                                      = ["${local.s3_ro_paths}"]
+
   tags = {
     Terraform   = true
     Environment = "${local.environment_name}"
   }
+
   scaling_properties = "${var.scaling_rules}"
   host_path_volumes  = "${var.host_path_volumes}"
   mountpoints        = "${var.mountpoints}"
+
+  is_scheduled_task         = "${length(var.scheduled_task_expression) == 0 ? false : true}"
+  scheduled_task_expression = "${var.scheduled_task_expression}"
+  scheduled_task_count      = "${var.scheduled_task_count}"
 }
 
 # Default alarm when the number of unhealthy hosts exceed 0
