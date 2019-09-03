@@ -351,7 +351,8 @@ resource "aws_security_group_rule" "allow_all_egress" {
 module "service" {
   #source  = "blinkist/airship-ecs-service/aws"  #version = "~> 0.9.0"
   #source = "../terraform-aws-airship-ecs-service"
-  source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=scheduled_task_support"
+  #source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=scheduled_task_support"
+  source  = "git::https://git:05e876c88cb3da6fe133a3dab4c01c7da39e952b@git.rootdom.dk/KIT-ITL/terraform-aws-airship-ecs-service?ref=1.0.0"
 
   create                                           = "${var.create}"
   name                                             = "${var.name}"                                                                                   # TODO: Prefix with envname?
@@ -400,7 +401,7 @@ module "service" {
   host_path_volumes  = "${var.host_path_volumes}"
   mountpoints        = "${var.mountpoints}"
 
-  is_scheduled_task         = "${length(var.scheduled_task_expression) > 0 ? true : false}"
+  is_scheduled_task         = "${length(var.scheduled_task_expression) == 0 ? false : true}"
   scheduled_task_expression = "${var.scheduled_task_expression}"
   scheduled_task_count      = "${var.scheduled_task_count}"
 }
