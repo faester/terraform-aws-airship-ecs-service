@@ -1,0 +1,32 @@
+language: bash
+
+env:
+  global:
+    - TERRAFORM_VERSION=0.11.13
+
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - docker pull hashicorp/terraform:$TERRAFORM_VERSION
+  - docker pull wata727/tflint:0.5.1
+
+script:
+  - docker run --rm -v $(pwd):/data --workdir=/data -t hashicorp/terraform:$TERRAFORM_VERSION validate -check-variables=false
+  - docker run --rm -v $(pwd):/data --workdir=/data -t hashicorp/terraform:$TERRAFORM_VERSION fmt -write=false -diff=true -check=true
+  - docker run --rm -v $(pwd):/data --workdir=/data -t hashicorp/terraform:$TERRAFORM_VERSION get
+
+after_script:
+  - |
+    if [ "$TRAVIS_BRANCH" == "master" ] ; then
+      gem install travis
+      if git diff --name-only $TRAVIS_COMMIT_RANGE airship.tf | grep -qE '(\.md$)|(\.rst$)'
+      then
+        echo "There appear to be docs in this commit. Thank you.!"
+        curl -LO https://raw.github.com/maartenvanderhoef/travis-dependent-builds/master/trigger.sh
+        chmod +x trigger.sh
+        ./trigger.sh doingcloudright airship.tf master $TRAVIS_ACCESS_TOKEN
+      fi
+    fi
