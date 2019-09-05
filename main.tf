@@ -125,28 +125,30 @@
  */
 locals {
   default_settings = {
-    api_gateway                     = false
-    bootstrap_container_image       = "USE_DEFAULT"
-    container_cpu                   = 256
-    container_memory                = 512
-    container_port                  = 8080
-    cloud_watch_metrics             = false
-    force_bootstrap_container_image = false
-    image_version                   = "latest"
-    initial_capacity                = 1
-    min_capacity                    = 1
-    max_capacity                    = 2
-    lb_health_uri                   = "/actuator/health"
-    lb_unhealthy_threshold          = 3
-    lb_healthy_threshold            = 3
-    lb_redirect_http_to_https       = true
-    load_balancing_type             = ""
-    kms_keys                        = ""
-    nlb_port                        = -1
-    ssm_paths                       = ""
-    s3_ro_paths                     = ""
-    s3_rw_paths                     = ""
-    platform                        = "FARGATE"
+    api_gateway                        = false
+    bootstrap_container_image          = "USE_DEFAULT"
+    container_cpu                      = 256
+    container_memory                   = 512
+    container_port                     = 8080
+    cloud_watch_metrics                = false
+    force_bootstrap_container_image    = false
+    image_version                      = "latest"
+    initial_capacity                   = 1
+    min_capacity                       = 1
+    max_capacity                       = 2
+    deployment_maximum_percent         = 200
+    deployment_minimum_healthy_percent = 100
+    lb_health_uri                      = "/actuator/health"
+    lb_unhealthy_threshold             = 3
+    lb_healthy_threshold               = 3
+    lb_redirect_http_to_https          = true
+    load_balancing_type                = ""
+    kms_keys                           = ""
+    nlb_port                           = -1
+    ssm_paths                          = ""
+    s3_ro_paths                        = ""
+    s3_rw_paths                        = ""
+    platform                           = "FARGATE"
   }
 
   combined_settings = "${merge(local.default_settings,var.shared_settings,var.settings)}"
@@ -200,7 +202,7 @@ data "aws_ssm_parameter" "parameters" {
 }
 
 data "aws_ssm_parameter" "placeholder_parameter" {
-  name  = "/${local.environment_name}/placeholder/placeholder"
+  name = "/${local.environment_name}/placeholder/placeholder"
 }
 
 data "null_data_source" "parameters" {
@@ -352,45 +354,47 @@ module "service" {
   #source  = "blinkist/airship-ecs-service/aws"  #version = "~> 0.9.0"
   #source = "../terraform-aws-airship-ecs-service"
   #source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=scheduled_task_support"
-  source  = "git::https://git:05e876c88cb3da6fe133a3dab4c01c7da39e952b@git.rootdom.dk/KIT-ITL/terraform-aws-airship-ecs-service?ref=1.0.0"
+  source = "git::https://git:05e876c88cb3da6fe133a3dab4c01c7da39e952b@git.rootdom.dk/KIT-ITL/terraform-aws-airship-ecs-service?ref=1.0.0"
 
-  create                                           = "${var.create}"
-  name                                             = "${var.name}"                                                                                   # TODO: Prefix with envname?
-  bootstrap_container_image                        = "${local.docker_image}"
-  container_cpu                                    = "${local.combined_settings["container_cpu"]}"
-  container_memory                                 = "${local.combined_settings["container_memory"]}"
-  container_port                                   = "${local.combined_settings["container_port"]}"
-  container_envvars                                = "${local.combined_environment_variables}"
-  container_secrets                                = "${local.environment_secrets}"
-  container_healthcheck                            = "${var.container_healthcheck}"
-  container_secrets_enabled                        = "${length(keys(local.environment_secrets)) > 0}"
-  fargate_enabled                                  = "${local.is_fargate ? 1 : 0}"
-  force_bootstrap_container_image                  = "${local.combined_settings["force_bootstrap_container_image"]}"
-  awsvpc_enabled                                   = "${local.is_fargate ? 1 : 0}"
-  awsvpc_security_group_ids                        = ["${aws_security_group.sg.*.id}"]
-  awsvpc_subnets                                   = ["${compact(split(",", local.is_fargate ? join(",", data.aws_subnet_ids.private.ids ) : ""))}"]
-  capacity_properties_desired_capacity             = "${local.combined_settings["initial_capacity"]}"
-  capacity_properties_desired_max_capacity         = "${local.combined_settings["max_capacity"]}"
-  capacity_properties_desired_min_capacity         = "${local.combined_settings["min_capacity"]}"
-  load_balancing_type                              = "${local.load_balancing_type}"
-  load_balancing_properties_nlb_listener_port      = "${local.nlb_port}"
-  load_balancing_properties_redirect_http_to_https = "${local.combined_settings["lb_redirect_http_to_https"]}"
-  load_balancing_properties_lb_listener_arn_https  = "${data.aws_lb_listener.https.arn}"
-  load_balancing_properties_lb_listener_arn        = "${data.aws_lb_listener.http.arn}"
-  load_balancing_properties_lb_vpc_id              = "${data.aws_security_group.lb_sg.vpc_id}"
-  load_balancing_properties_lb_arn                 = "${data.aws_lb.lb.arn}"
-  load_balancing_properties_route53_zone_id        = "${local.combined_settings["lb_route53_zone_id"]}"
-  load_balancing_properties_health_uri             = "${local.combined_settings["lb_health_uri"]}"
-  load_balancing_properties_unhealthy_threshold    = "${local.combined_settings["lb_unhealthy_threshold"]}"
-  load_balancing_properties_healthy_threshold      = "${local.combined_settings["lb_healthy_threshold"]}"
-  region                                           = "${local.combined_settings["region"]}"
-  ecs_cluster_id                                   = "${data.aws_ecs_cluster.cluster.arn}"
-  kms_enabled                                      = "${length(local.kms_keys) > 0}"
-  kms_keys                                         = ["${local.kms_keys}"]
-  ssm_enabled                                      = "${length(local.ssm_paths) > 0}"
-  ssm_paths                                        = ["${local.ssm_paths}"]
-  s3_rw_paths                                      = ["${local.s3_rw_paths}"]
-  s3_ro_paths                                      = ["${local.s3_ro_paths}"]
+  create                                                 = "${var.create}"
+  name                                                   = "${var.name}"                                                                                   # TODO: Prefix with envname?
+  bootstrap_container_image                              = "${local.docker_image}"
+  container_cpu                                          = "${local.combined_settings["container_cpu"]}"
+  container_memory                                       = "${local.combined_settings["container_memory"]}"
+  container_port                                         = "${local.combined_settings["container_port"]}"
+  container_envvars                                      = "${local.combined_environment_variables}"
+  container_secrets                                      = "${local.environment_secrets}"
+  container_healthcheck                                  = "${var.container_healthcheck}"
+  container_secrets_enabled                              = "${length(keys(local.environment_secrets)) > 0}"
+  fargate_enabled                                        = "${local.is_fargate ? 1 : 0}"
+  force_bootstrap_container_image                        = "${local.combined_settings["force_bootstrap_container_image"]}"
+  awsvpc_enabled                                         = "${local.is_fargate ? 1 : 0}"
+  awsvpc_security_group_ids                              = ["${aws_security_group.sg.*.id}"]
+  awsvpc_subnets                                         = ["${compact(split(",", local.is_fargate ? join(",", data.aws_subnet_ids.private.ids ) : ""))}"]
+  capacity_properties_desired_capacity                   = "${local.combined_settings["initial_capacity"]}"
+  capacity_properties_desired_max_capacity               = "${local.combined_settings["max_capacity"]}"
+  capacity_properties_desired_min_capacity               = "${local.combined_settings["min_capacity"]}"
+  capacity_properties_deployment_maximum_percent         = "${local.combined_settings["deployment_maximum_percent"]}"
+  capacity_properties_deployment_minimum_healthy_percent = "${local.combined_settings["deployment_minimum_healthy_percent"]}"
+  load_balancing_type                                    = "${local.load_balancing_type}"
+  load_balancing_properties_nlb_listener_port            = "${local.nlb_port}"
+  load_balancing_properties_redirect_http_to_https       = "${local.combined_settings["lb_redirect_http_to_https"]}"
+  load_balancing_properties_lb_listener_arn_https        = "${data.aws_lb_listener.https.arn}"
+  load_balancing_properties_lb_listener_arn              = "${data.aws_lb_listener.http.arn}"
+  load_balancing_properties_lb_vpc_id                    = "${data.aws_security_group.lb_sg.vpc_id}"
+  load_balancing_properties_lb_arn                       = "${data.aws_lb.lb.arn}"
+  load_balancing_properties_route53_zone_id              = "${local.combined_settings["lb_route53_zone_id"]}"
+  load_balancing_properties_health_uri                   = "${local.combined_settings["lb_health_uri"]}"
+  load_balancing_properties_unhealthy_threshold          = "${local.combined_settings["lb_unhealthy_threshold"]}"
+  load_balancing_properties_healthy_threshold            = "${local.combined_settings["lb_healthy_threshold"]}"
+  region                                                 = "${local.combined_settings["region"]}"
+  ecs_cluster_id                                         = "${data.aws_ecs_cluster.cluster.arn}"
+  kms_enabled                                            = "${length(local.kms_keys) > 0}"
+  kms_keys                                               = ["${local.kms_keys}"]
+  ssm_enabled                                            = "${length(local.ssm_paths) > 0}"
+  ssm_paths                                              = ["${local.ssm_paths}"]
+  s3_rw_paths                                            = ["${local.s3_rw_paths}"]
+  s3_ro_paths                                            = ["${local.s3_ro_paths}"]
 
   tags = {
     Terraform   = true
