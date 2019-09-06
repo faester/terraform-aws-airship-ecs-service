@@ -91,3 +91,8 @@ variable "scheduled_task_count" {
   description = "The number of tasks to create based on the TaskDefinition"
   default     = 1
 }
+
+variable "scheduled_task_name" {
+  description = "The name of the scheduled task rule"
+  default     = ""
+}
