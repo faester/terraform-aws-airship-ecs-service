@@ -356,7 +356,7 @@ module "service" {
   #source  = "blinkist/airship-ecs-service/aws"  #version = "~> 0.9.0"
   #source = "../terraform-aws-airship-ecs-service"
   #source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=scheduled_task_support"
-  source = "git::https://git:05e876c88cb3da6fe133a3dab4c01c7da39e952b@git.rootdom.dk/KIT-ITL/terraform-aws-airship-ecs-service?ref=1.0.0"
+  source = "git::https://git:05e876c88cb3da6fe133a3dab4c01c7da39e952b@git.rootdom.dk/KIT-ITL/terraform-aws-airship-ecs-service?ref=1.0.1"
 
   create                                                 = "${var.create}"
   name                                                   = "${var.name}"                                                                                   # TODO: Prefix with envname?
