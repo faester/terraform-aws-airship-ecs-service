@@ -425,8 +425,8 @@ data "aws_ecs_cluster" "this" {
 
 resource "aws_cloudwatch_event_rule" "scheduled_task" {
   count               = "${var.is_scheduled_task ? 1 : 0}"
-  name                = "${var.name}_scheduled_task"
-  description         = "Run ${var.name} task at a scheduled time (${var.scheduled_task_expression})"
+  name                = "${var.scheduled_task_name}_scheduled_task"
+  description         = "Run ${var.scheduled_task_name} task at a scheduled time (${var.scheduled_task_expression})"
   schedule_expression = "${var.scheduled_task_expression}"
 }
 

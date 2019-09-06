@@ -559,3 +559,8 @@ variable "scheduled_task_count" {
   description = "The number of tasks to create based on the TaskDefinition"
   default     = 1
 }
+
+variable "scheduled_task_name" {
+  description = "should be {environment}_{module name}"
+  default     = ""
+}
