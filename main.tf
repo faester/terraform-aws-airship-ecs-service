@@ -164,6 +164,8 @@ locals {
   is_fargate = "${local.combined_settings["platform"] == "FARGATE"}"
   has_lb     = "${local.combined_settings["load_balancing_type"] != "none"}"
 
+  is_scheduled_task = "${length(var.scheduled_task_expression) == 0 ? false : true}"
+
   nlb_port = "${local.combined_settings["nlb_port"] == -1 ? local.combined_settings["container_port"] : local.combined_settings["nlb_port"]}"
 
   docker_image = "${local.combined_settings["bootstrap_container_image"] != "USE_DEFAULT" ? 
@@ -354,7 +356,7 @@ module "service" {
   #source  = "blinkist/airship-ecs-service/aws"  #version = "~> 0.9.0"
   #source = "../terraform-aws-airship-ecs-service"
   #source = "github.com/mhvelplund/terraform-aws-airship-ecs-service?ref=scheduled_task_support"
-  source = "git::https://git:05e876c88cb3da6fe133a3dab4c01c7da39e952b@git.rootdom.dk/KIT-ITL/terraform-aws-airship-ecs-service?ref=1.0.0"
+  source = "git::https://git:05e876c88cb3da6fe133a3dab4c01c7da39e952b@git.rootdom.dk/KIT-ITL/terraform-aws-airship-ecs-service?ref=1.0.1"
 
   create                                                 = "${var.create}"
   name                                                   = "${var.name}"                                                                                   # TODO: Prefix with envname?
@@ -405,14 +407,15 @@ module "service" {
   host_path_volumes  = "${var.host_path_volumes}"
   mountpoints        = "${var.mountpoints}"
 
-  is_scheduled_task         = "${length(var.scheduled_task_expression) == 0 ? false : true}"
+  is_scheduled_task         = "${local.is_scheduled_task}"
   scheduled_task_expression = "${var.scheduled_task_expression}"
   scheduled_task_count      = "${var.scheduled_task_count}"
+  scheduled_task_name       = "${length(var.scheduled_task_name) == 0 ? var.name : var.scheduled_task_name}"
 }
 
 # Default alarm when the number of unhealthy hosts exceed 0
 resource "aws_cloudwatch_metric_alarm" "unhealthy-host-alarm" {
-  count               = "${local.has_lb ? 1 : 0}"
+  count               = "${local.has_lb && local.is_scheduled_task == false ? 1 : 0}"
   alarm_name          = "${local.environment_name}-${var.name}-unhealthy-host-count"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
