@@ -139,6 +139,11 @@ variable "load_balancing_properties_health_matcher" {
   default     = "200"
 }
 
+variable "load_balancing_properties_health_port" {
+  description = "health_port is the port of health uri to be checked by the ALB"
+  default     = "traffic-port"
+}
+
 variable "load_balancing_properties_unhealthy_threshold" {
   description = "The number of consecutive successful health checks required before considering an healthy target unhealthy"
   default     = "3"
@@ -561,6 +566,6 @@ variable "scheduled_task_count" {
 }
 
 variable "scheduled_task_name" {
-  description = "should be {environment}_{module name}"
+  description = "The name of the scheduled_task event rule. If blank, this defaults to var.name - should be {environment}_{module name}"
   default     = ""
 }

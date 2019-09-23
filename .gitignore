@@ -5,4 +5,5 @@
 modules/live_task_lookup/lookup.zip
 modules/lambda_ecs_task_scheduler/ecs_task_scheduler.zip
 
+# IntelliJ
 *idea/*
