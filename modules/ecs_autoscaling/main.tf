@@ -25,7 +25,8 @@ resource "aws_appautoscaling_policy" "policy" {
     metric_aggregation_type = "Average"
 
     step_adjustment {
-      metric_interval_lower_bound = 0
+      metric_interval_lower_bound = "${lookup(var.scaling_properties[count.index], "scaling_adjustment") == "-1" ? "" : "0"}"
+      metric_interval_upper_bound = "${lookup(var.scaling_properties[count.index], "scaling_adjustment") == "-1" ? "0" : ""}"
       scaling_adjustment          = "${lookup(var.scaling_properties[count.index], "scaling_adjustment")}"
     }
   }
