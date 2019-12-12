@@ -73,6 +73,11 @@ variable "load_balancing_type" {
   description = "load_balancing_type is either \"none\", \"network\",\"application\""
 }
 
+variable "nlb_targetgroup_healthcheck_protocol" {
+  type = "string"
+  default = "TCP"
+}
+
 variable "load_balancing_properties_route53_record_type" {
   description = "By default we create an ALIAS to the ALB, this can be set to CNAME, or NONE to not create any records"
   default     = "ALIAS"

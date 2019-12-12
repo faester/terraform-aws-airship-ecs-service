@@ -71,6 +71,8 @@ module "alb_handling" {
   # load_balancing_type sets the type, either "none", "application", or "network"
   load_balancing_type = "${var.load_balancing_type}"
 
+  nlb_targetgroup_healthcheck_protocol = "${var.nlb_targetgroup_healthcheck_protocol}"
+
   # lb_vpc_id sets the VPC ID of where the LB resides
   lb_vpc_id = "${var.load_balancing_properties_lb_vpc_id}"
 
