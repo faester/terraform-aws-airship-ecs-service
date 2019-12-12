@@ -59,8 +59,8 @@ resource "aws_lb_target_group" "service_nlb" {
 
   health_check {
     protocol = "${var.nlb_targetgroup_healthcheck_protocol}"
-    path     = "${var.nlb_targetgroup_healthcheck_protocol == "HTTPS" || var.nlb_targetgroup_healthcheck_protocol == "HTTP" ? var.health_uri : ""}"
-    matcher  = "${var.nlb_targetgroup_healthcheck_protocol == "HTTPS" || var.nlb_targetgroup_healthcheck_protocol == "HTTP" ? "200-399" : ""}"
+    path     = "${var.nlb_targetgroup_healthcheck_protocol == "HTTP" ? var.health_uri : ""}"
+    matcher  = "${var.nlb_targetgroup_healthcheck_protocol == "HTTP" ? "200-399" : ""}"
 
     ## health_check.healthy_threshold 3 and health_check.unhealthy_threshold 0 must be the same for target_groups with TCP protocol
     healthy_threshold   = "${max(var.healthy_threshold,var.unhealthy_threshold)}"
