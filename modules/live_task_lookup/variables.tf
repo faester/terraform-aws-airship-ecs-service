@@ -16,6 +16,12 @@ variable "lambda_lookup_role_arn" {}
 # lambda_lookup_role_policy_id sets the id of the added policy to the lambda, this to force dependency
 variable "lambda_lookup_role_policy_id" {}
 
+# Node runtime for lambda 
+variable "node_runtime" {
+  description = "Node runtime for lambda. As of January 2020 this should likely be 'nodejs10.x'"
+  type        = "string"
+}
+
 # lookup_type sets the type of lookup, either 
 # * lambda - works during bootstrap and after bootstrap
 # * datasource - uses terraform datasources ( aws_ecs_service ) which won't work during bootstrap
