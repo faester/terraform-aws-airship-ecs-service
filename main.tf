@@ -125,7 +125,7 @@ module "alb_handling" {
   health_uri = "${var.load_balancing_properties_health_uri}"
 
   # health_port defines port of the health-check
-  health_port= "${var.load_balancing_properties_health_port}"
+  health_port = "${var.load_balancing_properties_health_port}"
 
   # The expected HTTP status for the health check to be marked healthy
   # You can specify multiple values (for example, "200,202") or a range of values (for example, "200-299")
@@ -167,6 +167,7 @@ module "live_task_lookup" {
   lambda_lookup_role_policy_id = "${module.iam.lambda_lookup_role_policy_id}"
   lambda_lookup_role_arn       = "${module.iam.lambda_lookup_role_arn}"
   lookup_type                  = "${var.live_task_lookup_type}"
+  node_runtime                 = "${var.node_runtime}"
 }
 
 #
@@ -419,6 +420,8 @@ module "lambda_ecs_task_scheduler" {
 
   # lambda_ecs_task_scheduler_role_arn sets the role arn of the task scheduling lambda
   lambda_ecs_task_scheduler_role_arn = "${module.iam.lambda_ecs_task_scheduler_role_arn}"
+
+  node_runtime = "${var.node_runtime}"
 }
 
 # ECS scheduled task configuration. This uses a CloudWatch rulle to start an ECS task at given intervals.
