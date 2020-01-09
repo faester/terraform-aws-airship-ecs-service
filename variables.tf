@@ -569,3 +569,7 @@ variable "scheduled_task_name" {
   description = "The name of the scheduled_task event rule. If blank, this defaults to var.name - should be {environment}_{module name}"
   default     = ""
 }
+
+variable "node_runtime" {
+  description = "Node runtime for scheduler and lookup lamdba functions. As of January 2020 the value should likely be 'nodejs10.x'"
+}
