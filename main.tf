@@ -167,7 +167,7 @@ module "live_task_lookup" {
   lambda_lookup_role_policy_id = "${module.iam.lambda_lookup_role_policy_id}"
   lambda_lookup_role_arn       = "${module.iam.lambda_lookup_role_arn}"
   lookup_type                  = "${var.live_task_lookup_type}"
-  node_runtime                 = "${var.node_runtime}"
+  node_runtime                 = "${var.live_task_lookup_lambda_runtime}"
 }
 
 #
@@ -421,7 +421,7 @@ module "lambda_ecs_task_scheduler" {
   # lambda_ecs_task_scheduler_role_arn sets the role arn of the task scheduling lambda
   lambda_ecs_task_scheduler_role_arn = "${module.iam.lambda_ecs_task_scheduler_role_arn}"
 
-  node_runtime = "${var.node_runtime}"
+  node_runtime = "${var.lambda_ecs_task_scheduler_runtime}"
 }
 
 # ECS scheduled task configuration. This uses a CloudWatch rulle to start an ECS task at given intervals.

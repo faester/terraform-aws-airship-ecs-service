@@ -570,6 +570,10 @@ variable "scheduled_task_name" {
   default     = ""
 }
 
-variable "node_runtime" {
-  description = "Node runtime for scheduler and lookup lamdba functions. As of January 2020 the value should likely be 'nodejs10.x'"
+variable "lambda_ecs_task_scheduler_runtime" {
+  description = "Node runtime for ecs task scheduler. As of January 2020 the value should likely be 'nodejs10.x'"
+}
+
+variable "live_task_lookup_lambda_runtime" {
+  description = "Node runtime for lookup lamdba functions. As of January 2020 the value should likely be 'nodejs10.x'"
 }
