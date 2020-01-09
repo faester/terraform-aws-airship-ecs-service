@@ -18,9 +18,8 @@ variable "lambda_lookup_role_policy_id" {}
 
 # Node runtime for lambda 
 variable "node_runtime" {
-  description = "Node runtime for lambda. This will make AWS execute certain lambdas used during service setup as written in specific node versions. You should probably not change this value, but this might save the day if node version gets deprecated."
+  description = "Node runtime for lambda. As of January 2020 this should likely be 'nodejs10.x'"
   type        = "string"
-  default     = "nodejs10.x"
 }
 
 # lookup_type sets the type of lookup, either 
