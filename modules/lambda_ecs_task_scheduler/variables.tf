@@ -13,6 +13,12 @@ variable "container_name" {}
 # Role of the AWS Lambda
 variable "lambda_ecs_task_scheduler_role_arn" {}
 
+# Node runtime environment for Lambda
+variable "node_runtime" {
+  description = "Node runtime for lambda environment. As of January 2020 this should likely be 'nodejs10.x'."
+  type        = "string"
+}
+
 # ecs_cron_tasks holds a list of maps defining the scheduled jobs which need to run
 #
 #
