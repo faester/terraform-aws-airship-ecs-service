@@ -576,13 +576,23 @@ variable "scheduled_task_name" {
 }
 
 variable "lambda_ecs_task_scheduler_runtime" {
-  description = ""
+  description = <<EOF
+  Node runtime for ecs task scheduler. As of January 2020 the value should likely be 'nodejs10.x'.
+  Changing the default makes the underlying assumptoin, that node scripts defined *in this module* will run in the specified runtime.
+  It is meant as a way of ensuring you can deploy easily late at night.
+  EOF
+
   type        = "string"
   default     = "nodejs10.x"
 }
 
 variable "live_task_lookup_lambda_runtime" {
-  description = ""
+  description = <<EOF
+  Node runtime for lookup lamdba functions. As of January 2020 the value should likely be 'nodejs10.x'.
+  Changing the default makes the underlying assumptoin, that node scripts defined *in this module* will run in the specified runtime.
+  It is meant as a way of ensuring you can deploy easily late at night.
+  EOF
+
   type        = "string"
   default     = "nodejs10.x"
 }
