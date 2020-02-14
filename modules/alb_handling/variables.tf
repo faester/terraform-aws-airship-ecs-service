@@ -11,7 +11,7 @@ variable "load_balancing_type" {
 }
 
 variable "nlb_targetgroup_healthcheck_protocol" {
-  type = "string"
+  type    = "string"
   default = "TCP"
 }
 

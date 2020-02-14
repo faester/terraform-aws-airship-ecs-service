@@ -116,13 +116,13 @@ resource "aws_lb_listener_rule" "host_based_routing" {
   }
 
   condition {
-    field = "host-header"
-
-    values = ["${local.route53_record_type == "CNAME" ? 
+    host_header {
+      values = ["${local.route53_record_type == "CNAME" ? 
        join("",aws_route53_record.record.*.fqdn)
        :
        join("",aws_route53_record.record_alias_a.*.fqdn)
        }"]
+    }
   }
 }
 
@@ -143,13 +143,13 @@ resource "aws_lb_listener_rule" "host_based_routing_redirect_to_https" {
   }
 
   condition {
-    field = "host-header"
-
-    values = ["${local.route53_record_type == "CNAME" ?
+    host_header {
+      values = ["${local.route53_record_type == "CNAME" ?
        join("",aws_route53_record.record.*.fqdn)
        :
        join("",aws_route53_record.record_alias_a.*.fqdn)
        }"]
+    }
   }
 }
 
@@ -166,13 +166,13 @@ resource "aws_lb_listener_rule" "host_based_routing_ssl" {
   }
 
   condition {
-    field = "host-header"
-
-    values = ["${local.route53_record_type == "CNAME" ?
+    host_header {
+      values = ["${local.route53_record_type == "CNAME" ?
        join("",aws_route53_record.record.*.fqdn)
        :
        join("",aws_route53_record.record_alias_a.*.fqdn)
        }"]
+    }
   }
 }
 
@@ -199,13 +199,13 @@ resource "aws_lb_listener_rule" "host_based_routing_ssl_cognito_auth" {
   }
 
   condition {
-    field = "host-header"
-
-    values = ["${local.route53_record_type == "CNAME" ?
+    host_header {
+      values = ["${local.route53_record_type == "CNAME" ?
        join("",aws_route53_record.record.*.fqdn)
        :
        join("",aws_route53_record.record_alias_a.*.fqdn)
        }"]
+    }
   }
 }
 
@@ -232,8 +232,9 @@ resource "aws_lb_listener_rule" "host_based_routing_custom_listen_host" {
   }
 
   condition {
-    field  = "host-header"
-    values = ["${data.template_file.custom_listen_host.*.rendered[count.index]}"]
+    host_header {
+      values = ["${data.template_file.custom_listen_host.*.rendered[count.index]}"]
+    }
   }
 }
 
@@ -255,8 +256,9 @@ resource "aws_lb_listener_rule" "host_based_routing_custom_listen_host_redirect_
   }
 
   condition {
-    field  = "host-header"
-    values = ["${data.template_file.custom_listen_host.*.rendered[count.index]}"]
+    host_header {
+      values = ["${data.template_file.custom_listen_host.*.rendered[count.index]}"]
+    }
   }
 }
 
@@ -273,8 +275,9 @@ resource "aws_lb_listener_rule" "host_based_routing_ssl_custom_listen_host" {
   }
 
   condition {
-    field  = "host-header"
-    values = ["${data.template_file.custom_listen_host.*.rendered[count.index]}"]
+    host_header {
+      values = ["${data.template_file.custom_listen_host.*.rendered[count.index]}"]
+    }
   }
 }
 
@@ -301,7 +304,8 @@ resource "aws_lb_listener_rule" "host_based_routing_ssl_custom_listen_host_cogni
   }
 
   condition {
-    field  = "host-header"
-    values = ["${data.template_file.custom_listen_host.*.rendered[count.index]}"]
+    host_header {
+      values = ["${data.template_file.custom_listen_host.*.rendered[count.index]}"]
+    }
   }
 }
